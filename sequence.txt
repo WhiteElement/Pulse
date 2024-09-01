@@ -1,0 +1,5 @@
+# define the request sequence
+# semicolon separated
+# duration in seconds, number of clients, time between one request in ms
+
+10;5;10
