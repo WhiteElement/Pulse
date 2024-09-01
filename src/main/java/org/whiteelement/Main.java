@@ -25,6 +25,7 @@ public class Main {
     private static final String[] acceptedParams = {"sequence", "port"};
     private static AtomicInteger requestsMade = new AtomicInteger();
     private static AtomicInteger noOfsuccessfulRequests = new AtomicInteger();
+    private static ArrayList<HttpResponse> failedRequests = new ArrayList<HttpResponse>();
     
     
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -38,7 +39,6 @@ public class Main {
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
-        requestsMade.setPlain(1);
         
         if (params.isEmpty())
             throw new IllegalArgumentException(STR."No Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
@@ -84,6 +84,8 @@ public class Main {
                             LOG.info(STR."\{prefix} Request #\{requestsMade} send -> returned \{response.statusCode()}");
                             if (response.statusCode() == 200) 
                                 noOfsuccessfulRequests.getAndIncrement();
+                            else
+                                failedRequests.add(response);
                             
                             requestsMade.incrementAndGet();
                         } catch (URISyntaxException | IOException | InterruptedException e) {
@@ -96,9 +98,13 @@ public class Main {
         }
         
         LOG.info(STR."\{prefix} Sequences finished."); 
-        LOG.info(STR."\{requestsMade} Requests were fired");
-        LOG.info(STR."\{noOfsuccessfulRequests} returned 200");
-            
+        LOG.info(STR."\{prefix} \{requestsMade} Requests were fired");
+        LOG.info(STR."\{prefix} \{noOfsuccessfulRequests} returned 200");
+        
+        if (!failedRequests.isEmpty()) {
+            LOG.info(STR."\{prefix} The following requests did not succeed:");
+            failedRequests.forEach(r -> LOG.info(STR."\{prefix} >>>>>>>>\n\{r.body()}\n\{prefix} <<<<<<<<"));
+        }
     }
     
     private static HashMap<String, String> mapParams(List<String> params) {
@@ -107,6 +113,7 @@ public class Main {
             if (!param.contains("="))
                 throw new IllegalArgumentException(STR."Parameter \{param} is not provided with '='");
             
+            // is this .map?
             var noHyphen = param.replace("--", "");
             var keyAndValue = noHyphen.split("=");
             hashMap.put(keyAndValue[0], keyAndValue[1]);
