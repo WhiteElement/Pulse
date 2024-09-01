@@ -22,6 +22,7 @@ public class Main {
     private static short port;
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
     private static final String prefix = "[  CLIENT  ]";
+    private static final String[] acceptedParams = {"sequence", "port"};
     
     
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -34,19 +35,18 @@ public class Main {
 		//TODO: endpoint dynamic
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
-		// TODO: new String Templates
-        LOG.info(String.format("%s Parameters: %s", prefix, String.join(" ", params)));
+        LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
         
         if (params.isEmpty())
-            throw new IllegalArgumentException("No Arguments provided. Needed: sequence file (--sequence) & port (--port)");
+            throw new IllegalArgumentException(STR."No Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
         
         if (params.stream().noneMatch(x -> x.contains("sequence")) || params.stream().noneMatch(x -> x.contains("port")))
-            throw new IllegalArgumentException("Not all Arguments provided. Needed: sequence file (--sequence) & port (--port)");
+            throw new IllegalArgumentException(STR."Not all Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
         
         var paramMap = mapParams(params);
         port = Short.parseShort(paramMap.get("port"));
 		// TODO: new String Templates
-        LOG.info(String.format("%s Port: %s => URL: http://localhost:%s",prefix, port, port));
+        LOG.info(String.format(STR."\{prefix} Port: \{port} => URL: http://localhost:\{port}"));
         
         var sequenceFile = new File(paramMap.get("sequence"));
 
@@ -61,8 +61,8 @@ public class Main {
         } 
         
 		// TODO: new String Templates
-        LOG.info(String.format("%s %s Sequences found:", prefix, sequences.size()));
-        sequences.forEach(s -> LOG.info(String.format("%s %s", prefix, s.toString())));
+        LOG.info(STR."\{prefix} \{sequences.size()} Sequences found:");
+        sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
             
         long timeBound;
         for(var s : sequences) {
@@ -80,7 +80,7 @@ public class Main {
 							//TODO sendAsync
                             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
 						// TODO: new String Templates
-                            LOG.info(String.format("%s Request send -> returned %s", prefix, response.statusCode()));
+                            LOG.info(STR."\{prefix} Request send -> returned \{response.statusCode()}");
                         } catch (URISyntaxException e) {
                             throw new RuntimeException(e);
                         } catch (IOException e) {
@@ -102,7 +102,7 @@ public class Main {
         var hashMap = new HashMap<String, String>(2);
         for (final var param : params) {
             if (!param.contains("="))
-                throw new IllegalArgumentException(String.format("Parameter %s is not provided with '='", param));
+                throw new IllegalArgumentException(STR."Parameter \{param} is not provided with '='");
             
             var noHyphen = param.replace("--", "");
             var keyAndValue = noHyphen.split("=");
