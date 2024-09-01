@@ -8,14 +8,14 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.sql.Time;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 import java.io.FileReader;
+import java.util.concurrent.atomic.AtomicInteger;
+
 
 public class Main {
     private static final List<Sequence> sequences = new ArrayList<Sequence>();
@@ -23,6 +23,8 @@ public class Main {
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
     private static final String prefix = "[  CLIENT  ]";
     private static final String[] acceptedParams = {"sequence", "port"};
+    private static AtomicInteger requestsMade = new AtomicInteger();
+    private static AtomicInteger noOfsuccessfulRequests = new AtomicInteger();
     
     
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -36,6 +38,7 @@ public class Main {
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
+        requestsMade.setPlain(1);
         
         if (params.isEmpty())
             throw new IllegalArgumentException(STR."No Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
@@ -69,7 +72,6 @@ public class Main {
             timeBound = System.currentTimeMillis() + (s.getDurationS() * 1000);
             while (System.currentTimeMillis() <= timeBound) {
                 for (int i = 0; i < s.getNumOfClients(); i++) {
-                    //send request
                     Thread.ofVirtual().start(() -> {
                         var client = HttpClient.newHttpClient();
                         try {
@@ -79,22 +81,23 @@ public class Main {
                                     .build();
 							//TODO sendAsync
                             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-						// TODO: new String Templates
-                            LOG.info(STR."\{prefix} Request send -> returned \{response.statusCode()}");
-                        } catch (URISyntaxException e) {
-                            throw new RuntimeException(e);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        } catch (InterruptedException e) {
+                            LOG.info(STR."\{prefix} Request #\{requestsMade} send -> returned \{response.statusCode()}");
+                            if (response.statusCode() == 200) 
+                                noOfsuccessfulRequests.getAndIncrement();
+                            
+                            requestsMade.incrementAndGet();
+                        } catch (URISyntaxException | IOException | InterruptedException e) {
                             throw new RuntimeException(e);
                         }
-
-
                     });
                 }
                 Thread.sleep(s.getTimeBetweenRequestsMs());
             }
         }
+        
+        LOG.info(STR."\{prefix} Sequences finished."); 
+        LOG.info(STR."\{requestsMade} Requests were fired");
+        LOG.info(STR."\{noOfsuccessfulRequests} returned 200");
             
     }
     
