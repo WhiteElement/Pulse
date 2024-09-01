@@ -31,6 +31,7 @@ public class Main {
         //# duration in seconds, number of clients, time between one request in ms
 		//TODO: logging into log file
 		//TODO: sum requests
+		//TODO: endpoint dynamic
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
 		// TODO: new String Templates
