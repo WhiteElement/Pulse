@@ -17,18 +17,16 @@ import java.util.stream.IntStream;
 
 public class Main {
     private static final List<Sequence> sequences = new ArrayList<Sequence>();
-    private static short port;
+    private static String url;
     private static final Logger LOG = LogManager.getLogger();
     private static final String prefix = "[ CLIENT ]";
-    private static final String[] acceptedParams = {"sequence", "port"};
+    private static final String[] acceptedParams = {"sequence", "url"};
     private static final List<Thread> threads = new ArrayList<Thread>(4000);
     
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         
         // args
         //# duration in seconds, number of clients, time between one request in ms
-		//TODO: endpoint dynamic
-        //TODO: -PORT- => URL
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
@@ -36,16 +34,14 @@ public class Main {
         if (params.isEmpty())
             throw new IllegalArgumentException(STR."No Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
         
-        if (params.stream().noneMatch(x -> x.contains("sequence")) || params.stream().noneMatch(x -> x.contains("port")))
+        if (params.stream().noneMatch(x -> x.contains("sequence")) || params.stream().noneMatch(x -> x.contains("url")))
             throw new IllegalArgumentException(STR."Not all Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
         
         var paramMap = mapParams(params);
-        port = Short.parseShort(paramMap.get("port"));
-        LOG.info(String.format(STR."\{prefix} Port: \{port} => URL: http://localhost:\{port}"));
+        url = paramMap.get("url");
         
         var sequenceFile = new File(paramMap.get("sequence"));
-
-        try(BufferedReader br = new BufferedReader(new FileReader(sequenceFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(sequenceFile))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("#") || line.isEmpty())
@@ -59,7 +55,7 @@ public class Main {
         sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
             
         for(var s : sequences) {
-            var pulse = new Pulse("http://localhost:" + port);
+            var pulse = new Pulse(url);
             var repeatTimes = s.getDurationS() * 1_000 / s.getTimeBetweenRequestsMs();
             
             for (final var _ : IntStream.range(0, repeatTimes).toArray()) {
