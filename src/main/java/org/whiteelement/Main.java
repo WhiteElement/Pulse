@@ -2,39 +2,31 @@ package org.whiteelement;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
-import java.io.FileReader;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 
 public class Main {
     private static final List<Sequence> sequences = new ArrayList<Sequence>();
     private static short port;
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
-    private static final String prefix = "[  CLIENT  ]";
+    private static final String prefix = "[ CLIENT ]";
     private static final String[] acceptedParams = {"sequence", "port"};
-    private static AtomicInteger requestsMade = new AtomicInteger();
-    private static AtomicInteger noOfsuccessfulRequests = new AtomicInteger();
-    private static ArrayList<HttpResponse> failedRequests = new ArrayList<HttpResponse>();
+    private static final List<Thread> threads = new ArrayList<Thread>(4000);
     
-    
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         
         // args
         // port, sequence file, which request???
         //# duration in seconds, number of clients, time between one request in ms
 		//TODO: logging into log file
-		//TODO: sum requests
 		//TODO: endpoint dynamic
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
@@ -48,7 +40,6 @@ public class Main {
         
         var paramMap = mapParams(params);
         port = Short.parseShort(paramMap.get("port"));
-		// TODO: new String Templates
         LOG.info(String.format(STR."\{prefix} Port: \{port} => URL: http://localhost:\{port}"));
         
         var sequenceFile = new File(paramMap.get("sequence"));
@@ -63,50 +54,36 @@ public class Main {
             }
         } 
         
-		// TODO: new String Templates
         LOG.info(STR."\{prefix} \{sequences.size()} Sequences found:");
         sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
             
-        long timeBound;
         for(var s : sequences) {
-            timeBound = System.currentTimeMillis() + (s.getDurationS() * 1000);
-            while (System.currentTimeMillis() <= timeBound) {
-                for (int i = 0; i < s.getNumOfClients(); i++) {
-                    Thread.ofVirtual().start(() -> {
-                        var client = HttpClient.newHttpClient();
-                        try {
-                            var request = HttpRequest.newBuilder()
-                                    .GET()
-                                    .uri(new URI("http://localhost:" + port))
-                                    .build();
-							//TODO sendAsync
-                            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                            LOG.info(STR."\{prefix} Request #\{requestsMade} send -> returned \{response.statusCode()}");
-                            if (response.statusCode() == 200) 
-                                noOfsuccessfulRequests.getAndIncrement();
-                            else
-                                failedRequests.add(response);
-                            
-                            requestsMade.incrementAndGet();
-                        } catch (URISyntaxException | IOException | InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            var pulse = new Pulse("http://localhost:" + port);
+            var repeatTimes = s.getDurationS() * 1_000 / s.getTimeBetweenRequestsMs();
+            
+            for (final var _ : IntStream.range(0, repeatTimes).toArray()) {
+                for (final var _ : IntStream.range(0, s.getNumOfClients()).toArray()) {
+                    var t = Thread.ofVirtual().start(pulse::startPulsing);
+                    threads.add(t);
                 }
                 Thread.sleep(s.getTimeBetweenRequestsMs());
             }
         }
+
+        threads.forEach(t -> {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
         
-        LOG.info(STR."\{prefix} Sequences finished."); 
-        LOG.info(STR."\{prefix} \{requestsMade} Requests were fired");
-        LOG.info(STR."\{prefix} \{noOfsuccessfulRequests} returned 200");
-        
-        if (!failedRequests.isEmpty()) {
-            LOG.info(STR."\{prefix} The following requests did not succeed:");
-            failedRequests.forEach(r -> LOG.info(STR."\{prefix} >>>>>>>>\n\{r.body()}\n\{prefix} <<<<<<<<"));
-        }
+        sequences.forEach(s -> {
+            LOG.info(STR."\{prefix} Sequences finished.");
+            LOG.info(STR."\{prefix} \{threads.size()} Requests sent via \{s.getNumOfClients()} clients over \{s.getDurationS()} seconds every \{s.getTimeBetweenRequestsMs()}ms");
+        });
     }
-    
+        
     private static HashMap<String, String> mapParams(List<String> params) {
         var hashMap = new HashMap<String, String>(2);
         for (final var param : params) {
