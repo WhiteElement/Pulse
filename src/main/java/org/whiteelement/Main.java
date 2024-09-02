@@ -1,5 +1,8 @@
 package org.whiteelement;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -9,14 +12,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 
 public class Main {
     private static final List<Sequence> sequences = new ArrayList<Sequence>();
     private static short port;
-    private static final Logger LOG = Logger.getLogger(Main.class.getName());
+    private static final Logger LOG = LogManager.getLogger();
     private static final String prefix = "[ CLIENT ]";
     private static final String[] acceptedParams = {"sequence", "port"};
     private static final List<Thread> threads = new ArrayList<Thread>(4000);
@@ -24,10 +26,9 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         
         // args
-        // port, sequence file, which request???
         //# duration in seconds, number of clients, time between one request in ms
-		//TODO: logging into log file
 		//TODO: endpoint dynamic
+        //TODO: -PORT- => URL
         
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
