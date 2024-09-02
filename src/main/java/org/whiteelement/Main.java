@@ -2,7 +2,6 @@ package org.whiteelement;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -24,10 +23,6 @@ public class Main {
     private static final List<Thread> threads = new ArrayList<Thread>(4000);
     
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
-        
-        // args
-        //# duration in seconds, number of clients, time between one request in ms
-        
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
         
@@ -87,7 +82,6 @@ public class Main {
             if (!param.contains("="))
                 throw new IllegalArgumentException(STR."Parameter \{param} is not provided with '='");
             
-            // is this .map?
             var noHyphen = param.replace("--", "");
             var keyAndValue = noHyphen.split("=");
             hashMap.put(keyAndValue[0], keyAndValue[1]);
