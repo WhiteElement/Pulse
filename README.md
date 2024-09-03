@@ -5,4 +5,4 @@ It allows the user to specify certain scenarios for customization of request cas
 
 Pulse takes the following start parameters:
 --sequence={LOCATION FOR SEQUENCE FILE}
---port={PORT TO BE USED}
+--url={URL AND PATH FOR REQUESTS}
