@@ -5,8 +5,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -14,13 +12,12 @@ import java.util.stream.IntStream;
 public class Main {
     private static final List<Sequence> sequences = new ArrayList<>();
     private static final Logger LOG = LogManager.getLogger();
-    private static final String prefix = "[ CLIENT ]";
     private static final String[] acceptedParams = {"sequence", "url"};
     private static final List<Thread> threads = new ArrayList<>(4000);
     
     public static void main(String[] args) throws Exception {
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
-        LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
+        LOG.info(STR."Parameters provided: \{String.join(", ", params)}");
         
         if (params.isEmpty())
             throw new IllegalArgumentException(STR."No Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
@@ -47,8 +44,8 @@ public class Main {
            throw new Exception(error);
         }
         
-        LOG.info(STR."\{prefix} \{sequences.size()} Sequences found:");
-        sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
+        LOG.info(STR."\{sequences.size()} Sequences found:");
+        sequences.forEach(s -> LOG.info(STR."\{s.toString()}"));
 
         var pulse = new Pulse(url);
         for(var s : sequences) {
@@ -72,8 +69,8 @@ public class Main {
         });
         
         sequences.forEach(s -> {
-            LOG.info(STR."\{prefix} Sequences finished.");
-            LOG.info(STR."\{prefix} \{threads.size()} Requests sent via \{s.getNumOfClients()} clients over \{s.getDurationS()} seconds every \{s.getTimeBetweenRequestsMs()}ms");
+            LOG.info("Sequences finished.");
+            LOG.info(STR."\{threads.size()} Requests sent via \{s.getNumOfClients()} clients over \{s.getDurationS()} seconds every \{s.getTimeBetweenRequestsMs()}ms");
         });
         
         pulse.printFailedRequests();
