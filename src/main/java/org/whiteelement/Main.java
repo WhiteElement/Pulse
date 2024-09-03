@@ -7,20 +7,16 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 
 public class Main {
-    private static final List<Sequence> sequences = new ArrayList<Sequence>();
-    private static String url;
+    private static final List<Sequence> sequences = new ArrayList<>();
     private static final Logger LOG = LogManager.getLogger();
     private static final String prefix = "[ CLIENT ]";
     private static final String[] acceptedParams = {"sequence", "url"};
-    private static final List<Thread> threads = new ArrayList<Thread>(4000);
+    private static final List<Thread> threads = new ArrayList<>(4000);
     
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
@@ -33,7 +29,7 @@ public class Main {
             throw new IllegalArgumentException(STR."Not all Arguments provided. Need: \{String.join(" & ", acceptedParams)}");
         
         var paramMap = mapParams(params);
-        url = paramMap.get("url");
+        String url = paramMap.get("url");
         
         var sequenceFile = new File(paramMap.get("sequence"));
         try (BufferedReader br = new BufferedReader(new FileReader(sequenceFile))) {
@@ -48,9 +44,9 @@ public class Main {
         
         LOG.info(STR."\{prefix} \{sequences.size()} Sequences found:");
         sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
-            
+
+        var pulse = new Pulse(url);
         for(var s : sequences) {
-            var pulse = new Pulse(url);
             var repeatTimes = s.getDurationS() * 1_000 / s.getTimeBetweenRequestsMs();
             
             for (final var _ : IntStream.range(0, repeatTimes).toArray()) {
@@ -74,6 +70,8 @@ public class Main {
             LOG.info(STR."\{prefix} Sequences finished.");
             LOG.info(STR."\{prefix} \{threads.size()} Requests sent via \{s.getNumOfClients()} clients over \{s.getDurationS()} seconds every \{s.getTimeBetweenRequestsMs()}ms");
         });
+        
+        pulse.printFailedRequests();
     }
         
     private static HashMap<String, String> mapParams(List<String> params) {
