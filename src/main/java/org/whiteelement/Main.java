@@ -18,7 +18,7 @@ public class Main {
     private static final String[] acceptedParams = {"sequence", "url"};
     private static final List<Thread> threads = new ArrayList<>(4000);
     
-    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
+    public static void main(String[] args) throws Exception {
         var params = Arrays.stream(args).filter(param -> param.startsWith("--")).toList();
         LOG.info(STR."\{prefix} Parameters provided: \{String.join(", ", params)}");
         
@@ -40,7 +40,12 @@ public class Main {
                 var sequenceParts = line.split(";");
                 sequences.add(new Sequence(sequenceParts[0], sequenceParts[1], sequenceParts[2]));
             }
-        } 
+        } catch (IndexOutOfBoundsException e) {
+            String error = "Sequence not provided in the right format format. Expected: semicolon separated (duration in seconds, number of clients, time " +
+                    "between requests in ms)";
+           LOG.fatal(error);
+           throw new Exception(error);
+        }
         
         LOG.info(STR."\{prefix} \{sequences.size()} Sequences found:");
         sequences.forEach(s -> LOG.info(STR."\{prefix} \{s.toString()}"));
